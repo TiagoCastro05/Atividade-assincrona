@@ -9,6 +9,9 @@
 <body class="bg-light">
     <div class="container mt-5" style="max-width: 400px;">
         <h2 class="mb-4 text-center">Registar Conta</h2>
+        <% if (message) { %>
+            <div class="alert alert-info text-center"><%= message %></div>
+        <% } %>
         <form action="/register" method="POST">
             <div class="mb-3">
                 <label for="username" class="form-label">Username:</label>

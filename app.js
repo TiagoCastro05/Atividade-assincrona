@@ -39,35 +39,42 @@ function estaAutenticado(req, res, next) {
 
 // Rota de registo de utilizador
 app.get('/register', (req, res) => {
-    res.render('register'); // Cria views/register.ejs
+    res.render('register', { message: null });
 });
 
 app.post('/register', async (req, res) => {
     const { username, password, nick, color } = req.body;
-    if (!username || !password) {
-        return res.send('Preenche todos os campos!');
+    if (!username || !password || !nick) {
+        return res.render('register', { message: 'Preenche todos os campos!' });
     }
     const userExists = await usersCollection.findOne({ username });
     if (userExists) {
-        return res.send('Utilizador já existe!');
+        return res.render('register', { message: 'Utilizador já existe!' });
     }
     const hash = await bcrypt.hash(password, 10);
     await usersCollection.insertOne({ username, password: hash, nick, color });
-    res.redirect('/login.html');
+    res.render('register', { message: 'Conta criada com sucesso! Agora podes fazer login.' });
 });
 
 // Login
+app.get('/login', (req, res) => {
+    res.render('login', { message: null });
+});
+
 app.post('/login', async (req, res) => {
     const { username, password } = req.body;
     const user = await usersCollection.findOne({ username });
-    if (user && await bcrypt.compare(password, user.password)) {
-        req.session.user = user.username;
-        req.session.nick = user.nick;
-        req.session.color = user.color;
-        res.redirect('/protected');
-    } else {
-        res.redirect('/login.html');
+    if (!user) {
+        return res.render('login', { message: 'Utilizador não existe!' });
     }
+    const valid = await bcrypt.compare(password, user.password);
+    if (!valid) {
+        return res.render('login', { message: 'Password incorreta!' });
+    }
+    req.session.user = user.username;
+    req.session.nick = user.nick;
+    req.session.color = user.color;
+    res.redirect('/protected');
 });
 
 // Página protegida
