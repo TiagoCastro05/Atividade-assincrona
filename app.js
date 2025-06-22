@@ -3,7 +3,7 @@ const session = require('express-session');
 const dotenv = require('dotenv');
 const { MongoClient, ObjectId } = require('mongodb');
 const bcrypt = require('bcrypt');
-const fetch = require('node-fetch'); // Instala: npm install node-fetch
+const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
 
 
 
@@ -92,10 +92,8 @@ app.get('/search', estaAutenticado, (req, res) => {
 });
 
 app.post('/search', estaAutenticado, async (req, res) => {
-    const { termo } = req.body;
-
-    // Exemplo: OpenWeatherMap + Wikipedia
-    const weatherKey = process.env.OPENWEATHER_KEY;
+    const termo = req.body.termo;
+    const weatherKey = process.env.OPENWEATHER_KEY; // mete a tua chave no .env
     const weatherUrl = `https://api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(termo)}&appid=${weatherKey}&units=metric&lang=pt`;
     const wikiUrl = `https://pt.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(termo)}`;
 
@@ -103,23 +101,32 @@ app.post('/search', estaAutenticado, async (req, res) => {
     let wikiData = {};
 
     try {
+        // Chama as APIs externas
         const weatherResp = await fetch(weatherUrl);
         weatherData = await weatherResp.json();
+        console.log("Resposta OpenWeatherMap:", weatherData); // <-- Adiciona isto
 
         const wikiResp = await fetch(wikiUrl);
         wikiData = await wikiResp.json();
 
-        // Guarda histórico
+        let weatherDescription = 'N/A';
+        if (weatherData.weather && Array.isArray(weatherData.weather) && weatherData.weather[0]) {
+            weatherDescription = weatherData.weather[0].description;
+        } else if (weatherData.message) {
+            weatherDescription = `Erro: ${weatherData.message}`;
+        }
         await historyCollection.insertOne({
             username: req.session.user,
             termo,
             data: new Date(),
-            weather: weatherData.weather ? weatherData.weather[0].description : 'N/A',
+            weather: weatherDescription,
             wiki: wikiData.extract || 'N/A'
         });
 
+        // Mostra o resultado ao utilizador (cria uma view result.ejs para mostrar)
         res.render('result', { termo, weather: weatherData, wiki: wikiData });
     } catch (err) {
+        console.error("ERRO DETALHADO:", err, weatherData, wikiData); // <-- Adiciona isto
         res.send('Erro ao obter dados das APIs.');
     }
 });
@@ -132,7 +139,7 @@ async function startServer() {
 
         db = client.db('UsersDB');
         usersCollection = db.collection('Users');
-        historyCollection = db.collection('History');
+        historyCollection = db.collection('Historico');
 
         app.listen(PORT, () => {
             console.log(`Servidor rodando na porta ${PORT}`);
