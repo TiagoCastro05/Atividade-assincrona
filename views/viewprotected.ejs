@@ -3,12 +3,28 @@
 
 <head>
     <title>Protected Page</title>
-   
 </head>
-<body style="background-color: <%= color %>">
-    <h1>Welcome, <%= nick %> ! </h1>
+<body style="background-color: <%= color || '#fff' %>">
+    <h1>Welcome, <%= nick %>!</h1>
     <p>This is a protected page.</p>
     <a href="/logout">Logout</a>
-</body>
 
+    <h2>Histórico de Pesquisas</h2>
+    <table border="1">
+        <tr>
+            <th>Termo</th>
+            <th>Data</th>
+            <th>Clima</th>
+            <th>Resumo Wikipedia</th>
+        </tr>
+        <% history.forEach(function(item) { %>
+            <tr>
+                <td><%= item.termo %></td>
+                <td><%= new Date(item.data).toLocaleString('pt-PT') %></td>
+                <td><%= item.weather %></td>
+                <td><%= item.wiki %></td>
+            </tr>
+        <% }) %>
+    </table>
+</body>
 </html>
